@@ -11,8 +11,8 @@ This lab involves building a basic ORM for a Student. As you've learned, an ORM 
 Will define a `Student` class that includes behaviors of a basic ORM.
 
 ## Setup
-Run `bundle install`. This installs all supporting gems.
-Run `createdb school_domain`. This assignment will have its own database.
+* Run `bundle install`. This installs all supporting gems.
+* Run `createdb school_domain`. This assignment will have its own database.
 
 ## Environment
 
@@ -92,7 +92,7 @@ The test simply instantiates a student and then calls insert. The expectation is
 The second test in the insert describe block is a bit more abstract. The basic premise is that after we insert a student into the database, the database has assigned it an auto-incrementing primary key. We have to update the current instance with this ID value otherwise this instance does not fully mirror the current state in the DB.
 
 To implement this behavior, you will need to tell Postgres to return the id field from an `INSERT` statement. We can get this by using the [`RETURNING` keyword](http://www.postgresql.org/docs/9.3/static/sql-insert.html).
-It will look something like this: `INSERT INTO students ... VALUES ... RETURNING id`. 
+It will look something like this: `INSERT INTO students ... VALUES ... RETURNING id`.
 #### BONUS
 
 1. How many times do you think we'll repeat and collect the various attributes of a student? How many places does that information live right now (so if we wanted to add an attribute, how many changes to our code would we need)? Can you think of a better way?
