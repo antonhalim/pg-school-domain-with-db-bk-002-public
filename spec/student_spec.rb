@@ -2,7 +2,7 @@ require_relative 'spec_helper'
 
 describe Student do
 
-  describe 'attributes' do 
+  describe 'attributes' do
     it 'has an id, name, tagline, github, twitter, blog_url, image_url, biography' do
       attributes = {
         :id => 1,
@@ -41,8 +41,8 @@ describe Student do
       Student.drop_table
       Student.create_table
 
-      table_check_sql = "SELECT tbl_name FROM sqlite_master WHERE type='table' AND tbl_name='students';"
-      expect(DB[:conn].execute(table_check_sql)[0]).to eq(['students'])
+      table_check_sql = "SELECT table_name FROM information_schema.tables WHERE table_name = 'students';"
+      expect(DB[:conn].exec(table_check_sql).first["table_name"]).to eq(['students'])
     end
   end
 
@@ -51,8 +51,8 @@ describe Student do
       Student.create_table
       Student.drop_table
 
-      table_check_sql = "SELECT tbl_name FROM sqlite_master WHERE type='table' AND tbl_name='students';"
-      expect(DB[:conn].execute(table_check_sql)[0]).to be_nil
+      table_check_sql = "SELECT table_name FROM information_schema.tables WHERE table_name = 'students';"
+      expect(DB[:conn].exec(table_check_sql).first).to be_nil
     end
   end
 
@@ -70,9 +70,9 @@ describe Student do
       avi.insert
 
       select_sql = "SELECT name FROM students WHERE name = 'Avi'"
-      result = DB[:conn].execute(select_sql)[0]
+      result = DB[:conn].exec(select_sql)[0]
 
-      expect(result[0]).to eq("Avi")
+      expect(result["name"]).to eq("Avi")
     end
 
     it 'updates the current instance with the ID of the student from the database' do
@@ -162,7 +162,7 @@ describe Student do
 
       avi.name = "Bob"
       expect(avi).to receive(:update)
-      avi.save      
+      avi.save
     end
   end
 end
