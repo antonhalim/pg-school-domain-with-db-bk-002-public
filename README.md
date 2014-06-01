@@ -1,5 +1,5 @@
 ---
-  tags: sqlite, orm, object orientation
+  tags: orm, object orientation, postgres
   languages: sql, ruby
   resources: 1
 ---
@@ -10,13 +10,17 @@ This lab involves building a basic ORM for a Student. As you've learned, an ORM 
 
 Will define a `Student` class that includes behaviors of a basic ORM.
 
+## Setup
+Run `bundle install`. This installs all supporting gems.
+Run `createdb students`. This assignment will have its own database.
+
 ## Environment
 
-Our environment is going to be a single point of requires and loads. 
+Our environment file located at `config/environment.rb` is going to be a single point of requires and loads.
 
 ### `DB[:conn]`
 
-Additionally, our environment is going to define a constant, `DB`, that will be equal to a hash, with a single key, `:conn`, that represents our database connection. This key will have a value of a connection to a sqlite3 database in the db directory. However, in our spec_helper, our testing environment, we're going to redefine the value of that key (not of the constant though) to point to an in-memory database. This will allow our tests to run in isolation of our production database. Whenever we want to refer to the applications connection to the database, we will simply rely on `DB[:conn]`.
+Additionally, our environment is going to define a constant, `DB`, that will be equal to a hash, with a single key, `:conn`, that represents our database connection. This key will have a value of a connection to the Postgres `students` database. However, in our spec_helper, our testing environment, we're going to redefine the value of that key (not of the constant though) to point to a separate database. This will allow our tests to run in isolation of our production database. Whenever we want to refer to the applications connection to the database, we will simply rely on `DB[:conn]`.
 
 ## The Spec Suite
 
@@ -38,19 +42,17 @@ describe '::create_table' do
     Student.drop_table
     Student.create_table
 
-    table_check_sql = "SELECT tbl_name FROM sqlite_master WHERE type='table' AND tbl_name='students';"
-    expect(DB[:conn].execute(table_check_sql)[0]).to eq(['students'])
+    table_check_sql = "SELECT table_name FROM information_schema.tables WHERE table_name = 'students';"
+    expect(DB[:conn].exec(table_check_sql).first["table_name"]).to eq(['students'])
   end
 end
 ```
 
 In our test, we first basically make sure that our database is blank by calling the soon to be defined `drop_table` method. It sort of makes sense to get these two tests to pass together. Imagine if the `create_table` method did nothing but for whatever reason, the table already existed. Simply testing the existence of the table is not enough, we must first explicitly check that the table didn't exist to begin and that it only exists after.
 
-How we're testing whether a table exists is sort of SQLite3 specific, but basically, sqlite keeps a table called `sqlite_master` that describes the rest of the database / schema. Thus if there is another table in the SQLite database, it will be represented as a row within sqlite_master.
+How we're testing whether a table exists is sort of Postgres specific, but basically, Postgres keeps a table called `information_schema.tables` that describes the rest of the database / schema. Thus if there is another table in the Postgres database, it will be represented as a row within `information_schema.tables`.
 
-![sqlite_master](http://dl.dropboxusercontent.com/s/j98mxmd5d4uec9g/2014-02-18%20at%2011.21%20AM.png)
-
-We just query that the sqlite_master table is empty at the start of the test,
+We just query that the `information_schema.tables` table does not contain a students table at start of the test,
 and then after calling `Student.create_table`, we expect the same query we ran at first to return the value of the tbl_name column, which should be `students`.
 
 Your job is to define a class method on `Student` that will execute the correct SQL to create a students table.
@@ -65,13 +67,13 @@ describe '::drop_table' do
     Student.create_table
     Student.drop_table
 
-    table_check_sql = "SELECT tbl_name FROM sqlite_master WHERE type='table' AND tbl_name='students';"
-    expect(DB[:conn].execute(table_check_sql)[0]).to be_nil
+    table_check_sql = "SELECT table_name FROM information_schema.tables WHERE table_name = 'students';"
+    expect(DB[:conn].exec(table_check_sql).first).to be_nil
   end
 end
 ```
 
-It basically is the exact opposite of the previous test, in fact, it relies on the `create_table` method to ensure that the table exists before we attempt to drop it (again, preventing false positives). 
+It basically is the exact opposite of the previous test, in fact, it relies on the `create_table` method to ensure that the table exists before we attempt to drop it (again, preventing false positives).
 
 Your job is to define a class method on `Student` that will execute the correct SQL to drop a students table.
 
@@ -87,7 +89,10 @@ This method will do the heavy lifting of inserting a student instance into the d
 
 The test simply instantiates a student and then calls insert. The expectation is that if we then run a simple SELECT looking for that student by name (I know, not the best thing to measure, but it'll do), we should find a row with that very data.
 
-The second test in the insert describe block is a bit more abstract. The basic premise is that after we insert a student into the database, the database has assigned it an auto-incrementing primary key. We have to update the current instance with this ID value otherwise this instance does not fully mirror the current state in the DB. To implement this behavior, you will need to know how to ask SQLite3 for the last inserted ID in a table, which would be: `SELECT last_insert_rowid() FROM students` [law_insert_rowid()](http://www.sqlite.org/lang_corefunc.html#last_insert_rowid)
+The second test in the insert describe block is a bit more abstract. The basic premise is that after we insert a student into the database, the database has assigned it an auto-incrementing primary key. We have to update the current instance with this ID value otherwise this instance does not fully mirror the current state in the DB.
+
+########## Might be cleaner to do an INSERT RETURNING
+To implement this behavior, you will need to know how to ask Postgres for the last inserted ID in a table. Any table that uses the `SERIAL` type has a new table created for it. For `students`, it's in a table called `students_id_seq`. We're interested in the value in column `last_value`.  Our Query for this is which would be: `SELECT * FROM students WHERE id=(SELECT last_value from students_id_seq)`
 
 #### BONUS
 
@@ -95,7 +100,7 @@ The second test in the insert describe block is a bit more abstract. The basic p
 
 ### `::new_from_db`
 
-This is an interesting method. Ultimately, the database is going to return an array representing a student's data. We need a way to cast that data into the appropriate attributes of a student. This method encapsulates that functionality. You can even think of it as new_from_array. Methods like this, that return instances of the class, are known as constructors, just like `::new`, except that they extend the functionality of `::new` without overwriting `initializee`
+This is an interesting method. Ultimately, the database is going to return a hash representing a student's data. We need a way to cast that data into the appropriate attributes of a student. This method encapsulates that functionality. You can even think of it as new_from_hash. Methods like this, that return instances of the class, are known as constructors, just like `::new`, except that they extend the functionality of `::new` without overwriting `initialize`
 
 #### BONUS
 
@@ -117,7 +122,7 @@ This spec ensures that given an instance of a student, simply calling save will 
 
 In the first test we create an instance, specify, since it has never been saved before, that the instance will receive a method call to `insert`.
 
-In the next test, we create an instane, save it, change it's name, and then specify that a call to the save method should trigger an `update`.
+In the next test, we create an instance, save it, change it's name, and then specify that a call to the save method should trigger an `update`.
 
 ### BONUSES
 
