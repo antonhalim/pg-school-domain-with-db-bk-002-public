@@ -1,4 +1,4 @@
-require_relative 'spec_helper'
+require 'spec_helper'
 
 describe Student do
 
@@ -42,7 +42,7 @@ describe Student do
       Student.create_table
 
       table_check_sql = "SELECT table_name FROM information_schema.tables WHERE table_name = 'students';"
-      expect(DB[:conn].exec(table_check_sql).first["table_name"]).to eq(['students'])
+      expect(DB[:conn].exec(table_check_sql).first["table_name"]).to eq('students')
     end
   end
 
@@ -70,7 +70,7 @@ describe Student do
       avi.insert
 
       select_sql = "SELECT name FROM students WHERE name = 'Avi'"
-      result = DB[:conn].exec(select_sql)[0]
+      result = DB[:conn].exec(select_sql).first
 
       expect(result["name"]).to eq("Avi")
     end
@@ -93,17 +93,25 @@ describe Student do
 
   describe '::new_from_db' do
     it 'creates an instance with corresponding attribute values' do
-      row = [1, "Avi", "Teacher", "aviflombaum", "aviflombaum", "http://aviflombaum.com", "http://aviflombaum.com/picture.jpg"]
+      row = {"id"=>"1",
+        "name"=>"Avi",
+        "tagline"=>"Teacher",
+        "github"=>"aviflombaum",
+        "twitter"=>"aviflombaum",
+        "blog_url"=>"http://aviflombaum.com",
+        "image_url"=>"http://aviflombaum.com/picture.jpg",
+        "biography"=>"aviflombaum"
+      }
       avi = Student.new_from_db(row)
 
-      expect(avi.id).to eq(row[0])
-      expect(avi.name).to eq(row[1])
-      expect(avi.tagline).to eq(row[2])
-      expect(avi.github).to eq(row[3])
-      expect(avi.twitter).to eq(row[4])
-      expect(avi.blog_url).to eq(row[5])
-      expect(avi.image_url).to eq(row[6])
-      expect(avi.biography).to eq(row[7])
+      expect(avi.id).to eq(row["id"].to_i)
+      expect(avi.name).to eq(row["name"])
+      expect(avi.tagline).to eq(row["tagline"])
+      expect(avi.github).to eq(row["github"])
+      expect(avi.twitter).to eq(row["twitter"])
+      expect(avi.blog_url).to eq(row["blog_url"])
+      expect(avi.image_url).to eq(row["image_url"])
+      expect(avi.biography).to eq(row["biography"])
     end
   end
 
