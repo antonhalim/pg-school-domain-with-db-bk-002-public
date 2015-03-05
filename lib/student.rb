@@ -75,10 +75,12 @@ class Student
   end
 
   def update
-    name = self.name
-    id = self.id
-    param = [name, id]
-    execute('UPDATE students SET name = $1 WHERE id = $2', param)
+    sql = <<-SQL
+    UPDATE students Set name=$1, tagline=$2, github=$3, twitter=$4, blog_url=$5, image_url=$6, biography=$7
+    WHERE id = $8
+    SQL
+    param = [name, tagline, github, twitter, blog_url, image_url, biography, id]
+    execute(sql, param)
   end
 
 end
